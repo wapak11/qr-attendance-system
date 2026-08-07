@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR School Attendance</title>
+
+    <link rel="icon" type="image/png" href="images/ESTI LOGO.png">
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <style>
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(-45deg, #0a192f, #022c43, #11584a, #00332a);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        color: #e6f1ff;
+        overflow: hidden;
+      }
+
+      /* 1. Live Clock Styling */
+      #live-clock {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1.5rem;
+        color: #00ffff;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 10px 20px;
+        border-radius: 50px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        margin-bottom: 20px;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      }
+
+      .scanner-wrapper {
+        position: relative;
+        background: rgba(16, 33, 54, 0.6);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #success-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 230, 118, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 10;
+        transition: opacity 0.3s;
+      }
+
+      .checkmark {
+        font-size: 80px;
+        color: #00e676;
+        transform: scale(0);
+        text-shadow: 0 0 20px rgba(0, 230, 118, 0.8);
+      }
+
+      @keyframes successPop {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 0; }
+      }
+
+      .animate-success { animation: successPop 0.8s ease-out forwards; }
+
+      #reader {
+        width: 500px;
+        background: #ffffff;
+        border: 2px solid #00e676;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      #reader video { transform: scaleX(-1) !important; }
+
+      #result {
+        margin-top: 25px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        padding: 15px 30px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        text-align: center;
+        width: 100%;
+      }
+
+      #clear-btn {
+        margin-top: 20px;
+        background: transparent;
+        color: #FF1744;
+        border: 1px solid #FF1744;
+        padding: 10px 25px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+        letter-spacing: 1px;
+      }
+
+      #clear-btn:hover {
+        background: #FF1744;
+        color: white;
+        box-shadow: 0 0 15px rgba(255, 23, 68, 0.5);
+      }
+
+      @media (max-width: 600px) { #reader { width: 300px; } }
+    </style>
+  </head>
+  <body>
+    <div id="live-clock">00:00:00 AM</div>
+
+    <div class="scanner-wrapper">
+      <div id="success-overlay"><div class="checkmark">✔</div></div>
+      <h2>QR Attendance System</h2>
+      <div id="reader"></div>
+      <div id="result">SYSTEM READY</div>
+      <button id="clear-btn" onclick="clearAttendance()">Reset Session</button>
+    </div>
+
+    <script>
+      // API base: use the same host the page was opened from (so scanning
+      // from a phone via the PC's local IP works), falling back to localhost
+      // when the page is opened directly from the file system.
+      const API_BASE = window.location.hostname
+        ? `${window.location.protocol}//${window.location.hostname}:3000`
+        : "http://localhost:3000";
+
+      // 2. Clock Logic
+      function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour12: true });
+        document.getElementById('live-clock').innerText = timeString;
+      }
+      setInterval(updateClock, 1000);
+      updateClock(); // Run immediately
+
+      function triggerSuccessAnimation() {
+        const overlay = document.getElementById("success-overlay");
+        const check = overlay.querySelector(".checkmark");
+        overlay.style.opacity = "1";
+        check.classList.add("animate-success");
+        setTimeout(() => {
+          overlay.style.opacity = "0";
+          check.classList.remove("animate-success");
+        }, 800);
+      }
+
+      function onScanSuccess(decodedText) {
+        triggerSuccessAnimation();
+        const resultBox = document.getElementById("result");
+        resultBox.innerText = "Processing: " + decodedText;
+
+        fetch(`${API_BASE}/scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studentId: decodedText }),
+        })
+        .then(res => res.json())
+        .then(data => {
+            resultBox.innerText = "✅ " + data.message.toUpperCase();
+            resultBox.style.color = "#00E676";
+        })
+        .catch(err => {
+            resultBox.innerText = "❌ SERVER OFFLINE";
+            resultBox.style.color = "#FF1744";
+        });
+      }
+
+      function clearAttendance() {
+        if (confirm("Wipe all records for a new session?")) {
+            fetch(`${API_BASE}/clear`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').innerText = "SYSTEM RESET: READY";
+                alert(data.message);
+            });
+        }
+      }
+
+      let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
+      html5QrcodeScanner.render(onScanSuccess);
+    </script>
+  </body>
+</html>
