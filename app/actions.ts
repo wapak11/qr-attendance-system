@@ -89,6 +89,40 @@ export async function getStudents(): Promise<Student[]> {
   return rows
 }
 
+export async function addStudent(formData: FormData): Promise<void> {
+  const id = (formData.get("id") ?? "").toString().trim()
+  const name = (formData.get("name") ?? "").toString().trim()
+  const section = (formData.get("section") ?? "").toString().trim()
+
+  if (!id || !name) {
+    return
+  }
+
+  await sql`
+    INSERT INTO students (id, name, section)
+    VALUES (${id}, ${name}, ${section || null})
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      section = EXCLUDED.section
+  `
+
+  revalidatePath("/admin")
+  revalidatePath("/records")
+}
+
+export async function deleteStudent(formData: FormData): Promise<void> {
+  const id = (formData.get("id") ?? "").toString().trim()
+  if (!id) {
+    return
+  }
+
+  await sql`DELETE FROM attendance WHERE student_id = ${id}`
+  await sql`DELETE FROM students WHERE id = ${id}`
+
+  revalidatePath("/admin")
+  revalidatePath("/records")
+}
+
 export async function clearTodayRecords(): Promise<void> {
   const day = manilaDay()
   await sql`DELETE FROM attendance WHERE day = ${day}`

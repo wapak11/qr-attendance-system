@@ -51,6 +51,12 @@ export default async function RecordsPage() {
               Export CSV
             </a>
             <Link
+              href="/admin"
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              Admin
+            </Link>
+            <Link
               href="/"
               className="rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
             >

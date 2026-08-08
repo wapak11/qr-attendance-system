@@ -87,12 +87,20 @@ export default function ScannerPage() {
               <p className="text-xs text-muted-foreground">Scan to record attendance</p>
             </div>
           </div>
-          <Link
-            href="/records"
-            className="rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            View Records
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/records"
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              View Records
+            </Link>
+            <Link
+              href="/admin"
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+            >
+              Admin
+            </Link>
+          </div>
         </div>
       </header>
 
