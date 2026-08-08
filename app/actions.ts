@@ -1,13 +1,44 @@
 "use server"
 
+import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { sql, manilaDay, type AttendanceRecord, type Student } from "@/lib/db"
+
+const ADMIN_COOKIE = "qr-attendance-admin"
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"
 
 export type ScanResult =
   | { ok: true; status: "recorded"; name: string; studentId: string; time: string }
   | { ok: true; status: "already"; name: string; studentId: string; time: string }
   | { ok: false; status: "unknown"; studentId: string }
   | { ok: false; status: "error"; message: string }
+
+export async function isAdminAuthenticated(): Promise<boolean> {
+  const cookieStore = await cookies()
+  return cookieStore.get(ADMIN_COOKIE)?.value === "true"
+}
+
+export async function loginAdmin(formData: FormData): Promise<void> {
+  const password = (formData.get("password") ?? "").toString().trim()
+  const cookieStore = await cookies()
+
+  if (password === ADMIN_PASSWORD) {
+    cookieStore.set(ADMIN_COOKIE, "true", {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 8,
+    })
+    revalidatePath("/admin")
+  }
+}
+
+export async function logoutAdmin(): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.delete(ADMIN_COOKIE)
+  revalidatePath("/admin")
+}
 
 // Records a scan for a student. Enforces one record per student per Manila day.
 export async function recordScan(rawId: string): Promise<ScanResult> {
@@ -86,6 +117,16 @@ export async function getStudents(): Promise<Student[]> {
   const rows = (await sql`
     SELECT id, name, section FROM students ORDER BY name ASC
   `) as Student[]
+  return rows
+}
+
+export async function getStudentRecords(studentId: string): Promise<AttendanceRecord[]> {
+  const rows = (await sql`
+    SELECT id, student_id, name, status, scanned_at, day
+    FROM attendance
+    WHERE student_id = ${studentId}
+    ORDER BY scanned_at DESC
+  `) as AttendanceRecord[]
   return rows
 }
 
