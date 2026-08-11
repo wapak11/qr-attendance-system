@@ -132,20 +132,49 @@ export async function getStudentRecords(studentId: string): Promise<AttendanceRe
 
 export async function addStudent(formData: FormData): Promise<void> {
   const id = (formData.get("id") ?? "").toString().trim()
-  const name = (formData.get("name") ?? "").toString().trim()
+  const status = (formData.get("status") ?? "Official Member").toString().trim()
+  const nickname = (formData.get("nickname") ?? "").toString().trim()
+  const badgeNumber = (formData.get("badge_number") ?? "").toString().trim()
   const section = (formData.get("section") ?? "").toString().trim()
 
-  if (!id || !name) {
+  if (!id || !nickname) {
     return
   }
 
-  await sql`
-    INSERT INTO students (id, name, section)
-    VALUES (${id}, ${name}, ${section || null})
-    ON CONFLICT (id) DO UPDATE SET
-      name = EXCLUDED.name,
-      section = EXCLUDED.section
-  `
+  if (status === "Official Member" && !badgeNumber) {
+    return
+  }
+
+  const normalizedStatus = status === "Aspirant" ? "Aspirant" : "Official Member"
+
+  const schemaRows = (await sql`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'students'
+  `) as Array<{ column_name: string }>
+
+  const columns = new Set(schemaRows.map((row) => row.column_name))
+
+  if (columns.has("status") && columns.has("nickname") && columns.has("badge_number")) {
+    await sql`
+      INSERT INTO students (id, name, section, status, nickname, badge_number)
+      VALUES (${id}, ${nickname}, ${section || null}, ${normalizedStatus}, ${nickname}, ${badgeNumber || null})
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        section = EXCLUDED.section,
+        status = EXCLUDED.status,
+        nickname = EXCLUDED.nickname,
+        badge_number = EXCLUDED.badge_number
+    `
+  } else {
+    await sql`
+      INSERT INTO students (id, name, section)
+      VALUES (${id}, ${nickname}, ${section || null})
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        section = EXCLUDED.section
+    `
+  }
 
   revalidatePath("/admin")
   revalidatePath("/records")

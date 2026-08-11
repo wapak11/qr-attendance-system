@@ -20,7 +20,7 @@ export default async function AdminPage() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <div>
-            <h1 className="text-sm font-semibold leading-tight">Student Administration</h1>
+            <h1 className="text-sm font-semibold leading-tight">Member Administration</h1>
             <p className="text-xs text-muted-foreground">Manage QR roster</p>
           </div>
           <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export default async function AdminPage() {
         <section className="grid gap-6 lg:grid-cols-[420px_1fr]">
           <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="mb-5">
-              <h2 className="text-sm font-semibold">Add Student</h2>
+              <h2 className="text-sm font-semibold">Add Member</h2>
               <p className="mt-1 text-xs text-muted-foreground">Create a roster record that matches a QR ID.</p>
             </div>
 
@@ -70,15 +70,43 @@ export default async function AdminPage() {
                 />
               </div>
 
+              <fieldset className="space-y-2">
+                <legend className="mb-2 block text-xs font-medium text-muted-foreground">
+                  Membership Status
+                </legend>
+                <div className="flex gap-6">
+                  <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                    <input type="radio" name="status" value="Official Member" className="accent-primary" defaultChecked />
+                    Official Member
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-foreground">
+                    <input type="radio" name="status" value="Aspirant" className="accent-primary" />
+                    Aspirant
+                  </label>
+                </div>
+              </fieldset>
+
               <div>
-                <label htmlFor="name" className="mb-2 block text-xs font-medium text-muted-foreground">
-                  Full Name
+                <label htmlFor="nickname" className="mb-2 block text-xs font-medium text-muted-foreground">
+                  Nickname
                 </label>
                 <input
-                  id="name"
-                  name="name"
+                  id="nickname"
+                  name="nickname"
                   required
-                  placeholder="e.g. Juan Dela Cruz"
+                  placeholder="e.g. Biker Joe"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div id="badge-number-container">
+                <label htmlFor="badge_number" className="mb-2 block text-xs font-medium text-muted-foreground">
+                  Badge Number
+                </label>
+                <input
+                  id="badge_number"
+                  name="badge_number"
+                  placeholder="e.g. MC-001"
                   className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
@@ -99,16 +127,45 @@ export default async function AdminPage() {
                 type="submit"
                 className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
-                Add Student
+                Add Member
               </button>
             </form>
+
+            <script dangerouslySetInnerHTML={{ __html: `
+              (() => {
+                const statusRadios = Array.from(document.querySelectorAll('input[name="status"]'))
+                const badgeField = document.getElementById('badge_number')
+                const badgeContainer = document.getElementById('badge-number-container')
+
+                const syncMembershipFields = () => {
+                  const selected = document.querySelector('input[name="status"]:checked')?.value || 'Official Member'
+                  const isOfficial = selected === 'Official Member'
+
+                  badgeContainer?.classList.toggle('hidden', !isOfficial)
+                  badgeField?.toggleAttribute('disabled', !isOfficial)
+                  badgeField?.toggleAttribute('aria-disabled', !isOfficial)
+
+                  if (isOfficial) {
+                    badgeField?.setAttribute('required', 'required')
+                    badgeField?.setAttribute('aria-required', 'true')
+                  } else {
+                    badgeField?.removeAttribute('required')
+                    badgeField?.removeAttribute('aria-required')
+                    badgeField?.value = ''
+                  }
+                }
+
+                statusRadios.forEach((radio) => radio.addEventListener('change', syncMembershipFields))
+                syncMembershipFields()
+              })()
+            ` }} />
           </section>
 
           <section className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="border-b border-border px-5 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-sm font-semibold">Students</h2>
+                  <h2 className="text-sm font-semibold">Members</h2>
                   <p className="text-xs text-muted-foreground">{students.length} enrolled</p>
                 </div>
               </div>

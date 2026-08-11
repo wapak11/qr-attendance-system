@@ -7,6 +7,9 @@ export type Student = {
   id: string
   name: string
   section: string | null
+  status?: "Official Member" | "Aspirant" | string | null
+  nickname?: string | null
+  badge_number?: string | null
 }
 
 export type AttendanceRecord = {
