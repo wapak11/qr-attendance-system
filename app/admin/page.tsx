@@ -57,15 +57,14 @@ export default async function AdminPage() {
             </div>
 
             <form action={addStudent} className="space-y-4">
-              <div>
+              <div id="badge-number-container">
                 <label htmlFor="id" className="mb-2 block text-xs font-medium text-muted-foreground">
-                  Student ID
+                  Badge Number / Student ID
                 </label>
                 <input
                   id="id"
                   name="id"
-                  required
-                  placeholder="e.g. 2024-IT-0001"
+                  placeholder="e.g. MC-001"
                   className="w-full rounded-xl border border-input bg-background px-4 py-3 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
@@ -99,18 +98,6 @@ export default async function AdminPage() {
                 />
               </div>
 
-              <div id="badge-number-container">
-                <label htmlFor="badge_number" className="mb-2 block text-xs font-medium text-muted-foreground">
-                  Badge Number
-                </label>
-                <input
-                  id="badge_number"
-                  name="badge_number"
-                  placeholder="e.g. MC-001"
-                  className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-
               <div>
                 <label htmlFor="section" className="mb-2 block text-xs font-medium text-muted-foreground">
                   Section
@@ -134,7 +121,7 @@ export default async function AdminPage() {
             <script dangerouslySetInnerHTML={{ __html: `
               (() => {
                 const statusRadios = Array.from(document.querySelectorAll('input[name="status"]'))
-                const badgeField = document.getElementById('badge_number')
+                const idField = document.getElementById('id')
                 const badgeContainer = document.getElementById('badge-number-container')
 
                 const syncMembershipFields = () => {
@@ -142,16 +129,16 @@ export default async function AdminPage() {
                   const isOfficial = selected === 'Official Member'
 
                   badgeContainer?.classList.toggle('hidden', !isOfficial)
-                  badgeField?.toggleAttribute('disabled', !isOfficial)
-                  badgeField?.toggleAttribute('aria-disabled', !isOfficial)
+                  idField?.toggleAttribute('disabled', !isOfficial)
+                  idField?.toggleAttribute('aria-disabled', !isOfficial)
 
                   if (isOfficial) {
-                    badgeField?.setAttribute('required', 'required')
-                    badgeField?.setAttribute('aria-required', 'true')
+                    idField?.setAttribute('required', 'required')
+                    idField?.setAttribute('aria-required', 'true')
                   } else {
-                    badgeField?.removeAttribute('required')
-                    badgeField?.removeAttribute('aria-required')
-                    badgeField?.value = ''
+                    idField?.removeAttribute('required')
+                    idField?.removeAttribute('aria-required')
+                    idField?.value = ''
                   }
                 }
 

@@ -131,21 +131,25 @@ export async function getStudentRecords(studentId: string): Promise<AttendanceRe
 }
 
 export async function addStudent(formData: FormData): Promise<void> {
+  const rawStatus = (formData.get("status") ?? "Official Member").toString().trim()
+  const normalizedStatus = rawStatus === "Aspirant" ? "Aspirant" : "Official Member"
+
   const id = (formData.get("id") ?? "").toString().trim()
-  const status = (formData.get("status") ?? "Official Member").toString().trim()
   const nickname = (formData.get("nickname") ?? "").toString().trim()
-  const badgeNumber = (formData.get("badge_number") ?? "").toString().trim()
   const section = (formData.get("section") ?? "").toString().trim()
 
-  if (!id || !nickname) {
+  if (!nickname) {
     return
   }
 
-  if (status === "Official Member" && !badgeNumber) {
+  if (normalizedStatus === "Official Member" && !id) {
     return
   }
 
-  const normalizedStatus = status === "Aspirant" ? "Aspirant" : "Official Member"
+  let resolvedId = id
+  if (normalizedStatus === "Aspirant" && !resolvedId) {
+    resolvedId = `ASP-${Math.round(Date.now() / 1000)}`
+  }
 
   const schemaRows = (await sql`
     SELECT column_name
@@ -158,7 +162,7 @@ export async function addStudent(formData: FormData): Promise<void> {
   if (columns.has("status") && columns.has("nickname") && columns.has("badge_number")) {
     await sql`
       INSERT INTO students (id, name, section, status, nickname, badge_number)
-      VALUES (${id}, ${nickname}, ${section || null}, ${normalizedStatus}, ${nickname}, ${badgeNumber || null})
+      VALUES (${resolvedId}, ${nickname}, ${section || null}, ${normalizedStatus}, ${nickname}, ${normalizedStatus === "Official Member" ? id : null})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         section = EXCLUDED.section,
@@ -169,7 +173,7 @@ export async function addStudent(formData: FormData): Promise<void> {
   } else {
     await sql`
       INSERT INTO students (id, name, section)
-      VALUES (${id}, ${nickname}, ${section || null})
+      VALUES (${resolvedId}, ${nickname}, ${section || null})
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         section = EXCLUDED.section
