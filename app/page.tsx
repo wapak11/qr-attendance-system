@@ -145,14 +145,14 @@ export default function ScannerPage() {
           {/* Manual entry fallback */}
           <form onSubmit={handleManualSubmit} className="mt-5 border-t border-border pt-5">
             <label htmlFor="manual" className="mb-2 block text-xs font-medium text-muted-foreground">
-              Or enter a student ID manually
+              Or enter nickname or badge number manually
             </label>
             <div className="flex gap-2">
               <input
                 id="manual"
                 value={manualId}
                 onChange={(e) => setManualId(e.target.value)}
-                placeholder="e.g. 2024-IT-0001"
+                placeholder="Enter Nickname or Badge No."
                 className="min-w-0 flex-1 rounded-xl border border-input bg-background px-4 py-3 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <button

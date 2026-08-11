@@ -42,19 +42,17 @@ export async function logoutAdmin(): Promise<void> {
 
 // Records a scan for a student. Enforces one record per student per Manila day.
 export async function recordScan(rawId: string): Promise<ScanResult> {
-  const studentId = rawId.trim()
-  if (!studentId) return { ok: false, status: "error", message: "Empty QR code" }
+  const lookup = rawId.trim()
+  if (!lookup) return { ok: false, status: "error", message: "Empty QR code" }
 
   try {
-    const students = (await sql`
-      SELECT id, name, section FROM students WHERE id = ${studentId} LIMIT 1
-    `) as Student[]
+    const matches = await resolveStudentLookup(lookup)
 
-    if (students.length === 0) {
-      return { ok: false, status: "unknown", studentId }
+    if (matches.length === 0) {
+      return { ok: false, status: "unknown", studentId: lookup }
     }
 
-    const student = students[0]
+    const student = matches[0]
     const day = manilaDay()
 
     // Try to insert; the unique (student_id, day) index blocks duplicates.
@@ -94,6 +92,50 @@ export async function recordScan(rawId: string): Promise<ScanResult> {
     console.log("[v0] recordScan error:", err instanceof Error ? err.message : err)
     return { ok: false, status: "error", message: "Database error" }
   }
+}
+
+async function resolveStudentLookup(lookup: string): Promise<Student[]> {
+  const schemaRows = (await sql`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'students'
+  `) as Array<{ column_name: string }>
+
+  const columns = new Set(schemaRows.map((row) => row.column_name))
+
+  const idMatches = (await sql`
+    SELECT id, name, section FROM students WHERE id = ${lookup} LIMIT 1
+  `) as Student[]
+
+  if (idMatches.length > 0) {
+    return idMatches
+  }
+
+  if (columns.has("nickname")) {
+    const nicknameMatches = (await sql`
+      SELECT id, name, section, nickname, status, badge_number FROM students
+      WHERE nickname ILIKE ${lookup} OR name ILIKE ${lookup}
+      LIMIT 1
+    `) as Student[]
+
+    if (nicknameMatches.length > 0) {
+      return nicknameMatches
+    }
+  }
+
+  if (columns.has("badge_number")) {
+    const badgeMatches = (await sql`
+      SELECT id, name, section, nickname, status, badge_number FROM students
+      WHERE badge_number = ${lookup}
+      LIMIT 1
+    `) as Student[]
+
+    if (badgeMatches.length > 0) {
+      return badgeMatches
+    }
+  }
+
+  return []
 }
 
 export async function getRecords(): Promise<AttendanceRecord[]> {
